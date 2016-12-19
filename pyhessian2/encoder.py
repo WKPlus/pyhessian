@@ -90,7 +90,13 @@ class Encoder(object):
             HessianObject: self.encode_object,
         }
 
-    def encode(self, val):
+    def encode(self, val, style=None):
+        _type = type(val) if not style else style
+        if style == "D":
+            if isinstance(val, list):
+                return self.encode_list(val, style)
+            return pack('>cd', 'D', v)
+
         _type = type(val)
         if _type not in self.encoders:
             raise Exception("No encoder for type: %s" % _type)
@@ -265,7 +271,7 @@ class Encoder(object):
         data.append(val[index:])
         return "".join(data)
 
-    def encode_list(self, val):
+    def encode_list(self, val, style=None):
         ret = self.encode_ref(val)
         if ret:
             return ret
@@ -277,7 +283,7 @@ class Encoder(object):
             data.append(pack('>2cH', 'V', 'l', length))
 
         for v in val:
-            data.append(self.encode(v))
+            data.append(self.encode(v, style=style))
         data.append('z')
         return "".join(data)
 
@@ -318,6 +324,8 @@ class Encoder(object):
         length = len(attrs)
         data.append(self.encode_int(length))
         for k in attrs.iterkeys():
+            if '#' in k:
+                k = k.split("#")[1]
             data.append(self.encode_string(k))
         self._classes.append(_class)
         return len(self._classes) - 1, data
@@ -330,6 +338,15 @@ class Encoder(object):
         data.append('o')
         attrs = val.attrs
         data.append(self.encode_int(ref_id))
-        for v in attrs.itervalues():
-            data.append(self.encode(v))
+        for k, v in attrs.iteritems():
+            if '#' in k:
+                t = k.split("#")[0]
+                if t == 'D':
+                    if isinstance(v, list):
+                        data.append(self.encode(v, style=t))
+                    else:
+                        data.append(pack('>cd', 'D', v))
+            else:
+                data.append(self.encode(v))
+
         return "".join(data)
