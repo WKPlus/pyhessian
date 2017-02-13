@@ -314,7 +314,7 @@ class Encoder(object):
         length = len(val)
         data = []
         data.append(pack('2c', 'V', 't'))
-        data.append(pack('h', len("java.util.HashSet")))
+        data.append(pack('>H', len("java.util.HashSet")))
         data.append("java.util.HashSet")
         if length <= 0xff:
             data.append(pack('>cB', 'n', length))
